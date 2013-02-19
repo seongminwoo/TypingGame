@@ -1,4 +1,4 @@
 TypingGame
 ==========
 
-typing competition game
+typing competition game with nodejs

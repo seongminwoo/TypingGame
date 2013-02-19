@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>소켓 채팅 테스트</title>
+<style type="text/css">
+.typing_msg {color:blue;}
+.control_msg {color:red;}
+.answer_msg {color:gray;}
+.grade {color:purple;}
+
+</style>
+<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+<script type="text/javascript">
+
+ var isGameOn = false;
+ var isGameAnswerNotYet = true;
+
+ var sorket;
+ window.onload=function(){
+  socket = io.connect();
+
+  socket.on('otherTypingMessage', function(data){
+   $("<li/>").addClass('answer_msg').text(data).prependTo($("#chatList"));
+  });
+
+  socket.on('newMessage', function(data){
+   $("<li/>").text(data).prependTo($("#chatList"));
+  });
+
+  socket.on('typingMessage', function(data){
+   $("<li/>").addClass('typing_msg').text(data).prependTo($("#chatList"));
+  });
+
+  socket.on('controlMessage', function(data){
+	if (data == 'stop') {
+		$("<li/>").addClass('control_msg').text("종료!").prependTo($("#chatList"));
+		isGameOn = false;
+	} else if (data == 'start') {
+		$("<li/>").addClass('control_msg').text("시작!").prependTo($("#chatList"));
+		isGameOn = true;
+		isGameAnswerNotYet = true;
+	} else if (data == 'alertStop') {
+		$("<li/>").addClass('control_msg').text("3초 뒤 문제가 종료됩니다.").prependTo($("#chatList"));
+	}  else if (data == 'alertStart') {
+		$("<li/>").addClass('control_msg').text("3초 뒤 문제가 시작됩니다.").prependTo($("#chatList"));
+	} else {
+		console.log("순위 데이타");
+		console.log(data);
+		var dataJson = eval('(' + data + ')');
+		console.log(dataJson);
+		console.log("answerNum : " + dataJson.answerNum);
+		var userAnswers = dataJson.userAnswers;
+		console.log("userAnswers : " + userAnswers);
+
+		var count = 1;
+		if (dataJson.answerNum == 1) {
+			console.log(userAnswers);
+			console.log("userAnswer : " + userAnswers);
+			$("<li/>").addClass('grade').text(count + "등 : " + userAnswers.name+ "(정확도:"+userAnswers.accuracy+",시간:" + userAnswers.time + "ms)").prependTo($("#chatList"));
+		} else if (dataJson.answerNum >= 1){
+			var gradeArea = $("<li/>").addClass('grade');
+			for(var i = 0 ; i < userAnswers.length; i++) {
+				var userAnswer = userAnswers[i];
+				console.log(userAnswer);
+				console.log("userAnswer : " + userAnswer);
+				var grade = userAnswer.grade;
+
+				if(grade == 0) {
+					grade = '-';
+					$("<p/>").text(grade + "등 : " + userAnswer.name+ "(정확도:"+userAnswer.accuracy+",시간:" + userAnswer.time + "초)").appendTo(gradeArea);
+				} else {
+					$("<p/>").text(grade + "등 : " + userAnswer.name+ "(정확도:"+userAnswer.accuracy+",시간:" + userAnswer.time + "초)").prependTo(gradeArea);
+				}
+			}
+
+			gradeArea.prependTo($("#chatList"));
+		}
+	}
+	
+  });
+
+
+  name = prompt("당신의 이름을 입력하세요!", '이름');
+  socket.emit("sendUserName",name);
+
+  $("#text").keyup(function(event){
+   //send input message when 'enter' key pressed
+   if(event.which == 13){
+    send();
+   }
+  });
+ }
+
+ function send(){
+  var msg = $("#text").val();
+	
+  if(isGameOn && isGameAnswerNotYet) {
+    isGameAnswerNotYet = false;
+	socket.emit("sendGameMessage", name+":"+msg);	
+  } else {
+	socket.emit("sendChatMessage", "[" + name+ "] "+msg);
+  }
+  
+  $("#text").val("");
+ }
+</script>
+</head>
+<body>
+<div>
+ <input type="text" id="text"/>
+ <button onclick="send()">전송</button>
+</div>
+<div>
+ <ul id="chatList">
+  
+ </ul>
+</div>
+</body>
+</html>

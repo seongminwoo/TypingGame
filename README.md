@@ -1,4 +1,4 @@
-typingGame
+TypingGame
 ==========
 
 typing competition game
